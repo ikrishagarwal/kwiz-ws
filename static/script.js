@@ -2,6 +2,9 @@ const stdout = document.querySelector('pre');
 function log(type, message) {
   stdout.textContent += `[${new Date().toISOString()}] (${type}): ${message}\n\n`;
 }
+async function pause(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 const proto = location.protocol.startsWith('https') ? 'wss' : 'ws';
 const websocket = new WebSocket(
@@ -27,5 +30,6 @@ function onResponse(data) {
 }
 
 function send(data) {
+  log('send', JSON.stringify(data, null, 2));
   websocket.send(JSON.stringify(data));
 }

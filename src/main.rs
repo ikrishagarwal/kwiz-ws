@@ -14,8 +14,6 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tower_http::services::ServeDir;
 
-// type: organizer or attendee
-
 #[shuttle_runtime::main]
 async fn main() -> ShuttleAxum {
     // Create a shared state
@@ -84,8 +82,10 @@ async fn websocket(socket: WebSocket, state: Arc<Mutex<State>>) {
                 continue;
             }
         };
+
         // use switch case to match request types and process
         match data.request_type {
+            // handle RegisterUser request
             RequestType::RegisterUser => {
                 let user = match data.data {
                     RequestData::RegisterUser(user) => user,
@@ -105,8 +105,15 @@ async fn websocket(socket: WebSocket, state: Arc<Mutex<State>>) {
                         continue;
                     }
                 };
-                state.lock().await.users.push(user);
+                state.lock().await.users.push(user.clone());
+                // send response
+                sender
+                    .send(Message::Text(serde_json::to_string(&user.clone()).unwrap()))
+                    .await
+                    .unwrap();
             }
+
+            // handle HostRoom request
             RequestType::HostRoom => {
                 let room_request = match data.data {
                     RequestData::HostRoom(room_request) => room_request,
@@ -125,12 +132,64 @@ async fn websocket(socket: WebSocket, state: Arc<Mutex<State>>) {
                         continue;
                     }
                 };
+                // only allow if has role of organizer
+                let local_state = state.clone();
+                let locked_state = local_state.lock().await;
+                let user = locked_state
+                    .users
+                    .iter()
+                    .find(|user| user.name == room_request.user);
+                // .users.iter().find(|user| user.name == room_request.user);
+                match user {
+                    Some(user) => {
+                        if user.role != Role::Organizer {
+                            sender
+                                .send(Message::Text(
+                                    serde_json::to_string(&ErrorResponse {
+                                        error: "user is not the organizer".to_string(),
+                                    })
+                                    .unwrap(),
+                                ))
+                                .await
+                                .unwrap();
+                            eprintln!("error: user is not the organizer");
+                            continue;
+                        }
+                    }
+                    None => {
+                        sender
+                            .send(Message::Text(
+                                serde_json::to_string(&ErrorResponse {
+                                    error: "user not found".to_string(),
+                                })
+                                .unwrap(),
+                            ))
+                            .await
+                            .unwrap();
+                        eprintln!("error: user not found");
+                        continue;
+                    }
+                }
                 let room = Room {
                     id: room_request.room_id.clone(),
                     users: vec![],
+                    questions: vec![],
+                    answers: vec![],
                 };
-                state.lock().await.rooms.push(room);
+                state.lock().await.rooms.push(room.clone());
+                // send response
+                sender
+                    .send(Message::Text(
+                        serde_json::to_string(&RoomResponse {
+                            room_id: room.id.clone(),
+                        })
+                        .unwrap(),
+                    ))
+                    .await
+                    .unwrap();
             }
+
+            // handle JoinRoom request
             RequestType::JoinRoom => {
                 let room_request = match data.data {
                     RequestData::JoinRoom(room_request) => room_request,
@@ -164,6 +223,16 @@ async fn websocket(socket: WebSocket, state: Arc<Mutex<State>>) {
                         match user {
                             Some(user) => {
                                 room.users.push(user.clone());
+                                // send response
+                                sender
+                                    .send(Message::Text(
+                                        serde_json::to_string(&RoomResponse {
+                                            room_id: room.id.clone(),
+                                        })
+                                        .unwrap(),
+                                    ))
+                                    .await
+                                    .unwrap();
                             }
                             None => {
                                 sender
@@ -193,6 +262,8 @@ async fn websocket(socket: WebSocket, state: Arc<Mutex<State>>) {
                     }
                 }
             }
+
+            // handle AddQuestions request
             RequestType::AddQuestions => {
                 let add_questions_request = match data.data {
                     RequestData::AddQuestions(add_questions_request) => add_questions_request,
@@ -225,6 +296,8 @@ async fn websocket(socket: WebSocket, state: Arc<Mutex<State>>) {
                             Some(_) => {
                                 // add questions to the room
                                 let questions = add_questions_request.questions;
+                                room.questions.extend(questions.clone());
+                                // send response
                                 sender
                                     .send(Message::Text(
                                         serde_json::to_string(&AddQuestionsResponse {
@@ -265,6 +338,7 @@ async fn websocket(socket: WebSocket, state: Arc<Mutex<State>>) {
                 }
             }
 
+            // handle AnswerQuestion request
             RequestType::AnswerQuestion => {
                 let answer_question_request = match data.data {
                     RequestData::AnswerQuestion(answer_question_request) => answer_question_request,
@@ -279,7 +353,6 @@ async fn websocket(socket: WebSocket, state: Arc<Mutex<State>>) {
                     .find(|room| room.id == answer_question_request.room_id);
                 match room {
                     Some(room) => {
-                        // check if the user is the organizer
                         let user = room
                             .users
                             .iter()
@@ -289,6 +362,12 @@ async fn websocket(socket: WebSocket, state: Arc<Mutex<State>>) {
                                 // add questions to the room
                                 let question = answer_question_request.question_id;
                                 let answer = answer_question_request.answer;
+                                room.answers.push(Answer {
+                                    user: answer_question_request.user.clone(),
+                                    question_id: question,
+                                    answer,
+                                });
+                                // send response
                                 sender
                                     .send(Message::Text(
                                         serde_json::to_string(&AnswerQuestionResponse {
@@ -302,23 +381,34 @@ async fn websocket(socket: WebSocket, state: Arc<Mutex<State>>) {
                                     .unwrap();
                             }
                             None => {
-                                eprintln!("error: user is not the organizer");
+                                eprintln!("error: user not found");
+                                sender
+                                    .send(Message::Text(
+                                        serde_json::to_string(&ErrorResponse {
+                                            error: "user not found".to_string(),
+                                        })
+                                        .unwrap(),
+                                    ))
+                                    .await
+                                    .unwrap();
                             }
                         }
                     }
                     None => {
                         eprintln!("error: room not found");
+                        sender
+                            .send(Message::Text(
+                                serde_json::to_string(&ErrorResponse {
+                                    error: "room not found".to_string(),
+                                })
+                                .unwrap(),
+                            ))
+                            .await
+                            .unwrap();
                     }
                 }
             }
         }
-
-        // send the message back to the client
-        let response = ErrorResponse {
-            error: "received message".to_string(),
-        };
-        let response = serde_json::to_string(&response).unwrap();
-        sender.send(Message::Text(response)).await.unwrap();
     }
 
     // This client disconnected
@@ -345,6 +435,15 @@ struct User {
 struct Room {
     id: String,
     users: Vec<User>,
+    questions: Vec<Question>,
+    answers: Vec<Answer>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct Answer {
+    user: String,
+    question_id: i32,
+    answer: i32,
 }
 
 // Role
@@ -414,7 +513,7 @@ struct AddQuestionsRequest {
     questions: Vec<Question>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct Question {
     id: String,
     question: String,
