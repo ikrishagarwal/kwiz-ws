@@ -884,7 +884,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "kwiz-ws-arnav"
+name = "kwiz-ws"
 version = "0.1.0"
 dependencies = [
  "axum 0.7.5",
