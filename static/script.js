@@ -37,105 +37,55 @@ async function testServer() {
   send({
     request_type: "register_user",
     designation: "attendee",
-    data: {
-      room_id: "test",
-      username: "st1",
-    },
+    room_id: "test",
+    username: "st1",
+    userId: "blah",
   });
-  await pause(2000);
+  await pause(100);
 
   // host_room
   send({
     request_type: "host_room",
     designation: "organizer",
-    data: {
-      room_id: "test_room",
-      username: "abc1",
-    },
+    roomId: "test_room",
+    userId: "abc1",
   });
-  await pause(2000);
+  await pause(100);
 
   // attendee register
   send({
     request_type: "register_user",
     designation: "attendee",
-    data: {
-      room_id: "test",
-      username: "st1",
-    },
+    roomId: "test_room",
+    username: "st1",
+    userId: "blasstr",
   });
-  await pause(2000);
+  await pause(100);
 
   // add_questions
   send({
-    request_type: "add_questions",
-    data: {
-      user: "test",
-      room_id: "test_room",
-      questions: [
-        {
-          id: "1",
-          question: "What is the first question?",
-          options: [
-            "The first option",
-            "The second option",
-            "The third option",
-            "The fourth option",
-          ],
-          answer: 0,
-        },
-        {
-          id: "2",
-          question: "What is the second question?",
-          options: [
-            "The first option",
-            "The second option",
-            "The third option",
-            "The fourth option",
-          ],
-          answer: 1,
-        },
-        {
-          id: "3",
-          question: "What is the third question?",
-          options: [
-            "The first option",
-            "The second option",
-            "The third option",
-            "The fourth option",
-          ],
-          answer: 2,
-        },
-        {
-          id: "4",
-          question: "What is the fourth question?",
-          options: [
-            "The first option",
-            "The second option",
-            "The third option",
-            "The fourth option",
-          ],
-          answer: 3,
-        },
-      ],
-    },
+    request_type: "add_question",
+    designation: "organizer",
+    roomId: "test_room",
+    question: "What is the first question?",
+    options: [
+      "The first option",
+      "The second option",
+      "The third option",
+      "The fourth option",
+    ],
   });
-  await pause(2000);
+  await pause(100);
 
-  /* Test Attendee Logic */
-  // answer_question
   send({
-    request_type: "answer_question",
-    data: {
-      AnswerQuestion: {
-        user: "test_attendee",
-        room_id: "test_room",
-        question_id: "1",
-        answer: 0,
-      },
-    },
+    request_type: "submit_answer",
+    designation: "organizer",
+    roomId: "test_room",
+    answer: 0,
   });
-  await pause(2000);
+  await pause(100);
 
   log("test", "Test completed");
+
+  return;
 }

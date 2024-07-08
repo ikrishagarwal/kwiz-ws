@@ -10,7 +10,7 @@ const state = {
 
 const wss = new WebSocketServer({ port: 8080 });
 
-wss.on("connection", function connection(ws, socket) {
+wss.on("connection", function connection(ws) {
   state.traffic += 1;
   console.log("New connection, total traffic:", state.traffic);
 
@@ -21,30 +21,123 @@ wss.on("connection", function connection(ws, socket) {
     try {
       request = JSON.parse(message);
     } catch (e) {
-      ws.send(formatJson({ error: "Invalid JSON" }));
-      ws.terminate();
+      ws.send(formatJson({ error: true, message: "Invalid JSON" }));
       return;
     }
 
     switch (request.request_type) {
       case "host_room":
         if (request.designation === "organizer") {
+          if (!request.roomId)
+            return ws.send(
+              formatJson({ error: true, message: "Invalid room id" })
+            );
+
           state.rooms[request.roomId] = {
             organizer: request.userId,
             attendees: [],
           };
+          ws.send(formatJson({ success: true, message: "Room hosted" }));
+        } else {
+          ws.send(
+            formatJson({
+              error: true,
+              message: "Designation does not support hosting",
+            })
+          );
         }
-        ws.send(formatJson({ success: "Room hosted" }));
+        break;
 
       case "register_user":
         if (request.designation === "attendee") {
-          state.rooms[request.roomId].attendees.push(request.userId);
+          if (!state.rooms[request.roomId])
+            return ws.send(
+              formatJson({ error: true, message: "Room does not exist" })
+            );
+
+          if (!request.username || !request.userId)
+            return ws.send(
+              formatJson({ error: true, message: "Invalid user id" })
+            );
+
+          state.rooms[request.roomId].attendees.push({
+            name: request.username,
+            id: request.userId,
+          });
+          ws.send(formatJson({ success: true, message: "User registered" }));
+        } else {
+          ws.send(
+            formatJson({
+              error: true,
+              message: "Designation does not support registration",
+            })
+          );
         }
-        ws.send(formatJson({ success: "User registered" }));
+        break;
+
+      case "add_question":
+        if (request.designation === "organizer") {
+          if (!state.rooms[request.roomId])
+            return ws.send(
+              formatJson({ error: true, message: "Room does not exist" })
+            );
+
+          if (!request.question)
+            return ws.send(
+              formatJson({ error: true, message: "Invalid question" })
+            );
+
+          if (!request.options || request.options.length !== 4)
+            return ws.send(
+              formatJson({ error: true, message: "Invalid options" })
+            );
+
+          state.rooms[request.roomId].question = request.question;
+          state.rooms[request.roomId].options = request.options;
+          ws.send(formatJson({ success: true, message: "Question added" }));
+
+          // TODO: send the question to attendees
+        } else {
+          ws.send(
+            formatJson({
+              error: true,
+              message: "Designation does not support adding questions",
+            })
+          );
+        }
+        break;
+
+      case "submit_answer":
+        if (request.designation === "organizer") {
+          if (!state.rooms[request.roomId])
+            return ws.send(
+              formatJson({ error: true, message: "Room does not exist" })
+            );
+
+          if (isNaN(request.answer))
+            return ws.send(
+              formatJson({ error: true, message: "Invalid answer" })
+            );
+
+          if (!state.rooms[request.roomId].question)
+            return ws.send(
+              formatJson({ error: true, message: "No question added" })
+            );
+
+          // TODO: post the solution to attendees
+          ws.send(formatJson({ success: true, message: "Answer submitted" }));
+        } else {
+          ws.send(
+            formatJson({
+              error: true,
+              message: "Designation does not support submitting answers",
+            })
+          );
+        }
+        break;
 
       default:
-        ws.send(formatJson({ error: "Invalid request_type" }));
-        ws.terminate();
+        ws.send(formatJson({ error: true, message: "Invalid request_type" }));
     }
   });
 
