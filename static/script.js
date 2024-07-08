@@ -1,15 +1,13 @@
-const stdout = document.querySelector('pre');
+const stdout = document.querySelector("pre");
 function log(type, message) {
   stdout.textContent += `[${new Date().toISOString()}] (${type}): ${message}\n\n`;
 }
 async function pause(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const proto = location.protocol.startsWith('https') ? 'wss' : 'ws';
-const websocket = new WebSocket(
-  `${proto}://${window.location.host}/ws`,
-);
+const proto = location.protocol.startsWith("https") ? "wss" : "ws";
+const websocket = new WebSocket(`${proto}://127.0.0.1:8080/`);
 
 websocket.onopen = async () => {
   log("ws", "connection established");
@@ -21,121 +19,73 @@ websocket.onclose = () => {
 
 websocket.onmessage = (e) => {
   const response = JSON.parse(e.data);
-  log('message', JSON.stringify(response, null, 2));
+  log("message", JSON.stringify(response, null, 2));
   onResponse(response);
 };
 
-function onResponse(data) {
-
-}
+function onResponse(data) {}
 
 function send(data) {
-  log('send', JSON.stringify(data, null, 2));
+  log("send", JSON.stringify(data, null, 2));
   websocket.send(JSON.stringify(data));
 }
 
 async function testServer() {
-  log('test', 'Starting test');
+  log("test", "Starting test");
+
   // organiser register_user
   send({
     request_type: "register_user",
-    data: {
-      RegisterUser: {
-        name: "test",
-        role: "organizer",
-      }
-    }
+    designation: "attendee",
+    room_id: "test",
+    username: "st1",
+    userId: "blah",
   });
-  await pause(2000);
+  await pause(100);
 
   // host_room
   send({
     request_type: "host_room",
-    data: {
-      HostRoom: {
-        user: "test",
-        room_id: "test_room",
-      }
-    }
+    designation: "organizer",
+    roomId: "test_room",
+    userId: "abc1",
   });
-  await pause(2000);
+  await pause(100);
 
   // attendee register
   send({
     request_type: "register_user",
-    data: {
-      RegisterUser: {
-        name: "test_attendee",
-        role: "attendee",
-      }
-    }
+    designation: "attendee",
+    roomId: "test_room",
+    username: "st1",
+    userId: "blasstr",
   });
-  await pause(2000);
-
-  // join_room
-  send({
-    request_type: "join_room",
-    data: {
-      JoinRoom: {
-        user: "test_attendee",
-        room_id: "test_room",
-      }
-    }
-  });
-  await pause(2000);
+  await pause(100);
 
   // add_questions
   send({
-    request_type: "add_questions",
-    data: {
-      AddQuestions: {
-        user: "test",
-        room_id: "test_room",
-        questions: [
-          {
-            id: "1",
-            question: "What is the first question?",
-            options: ["The first option", "The second option", "The third option", "The fourth option"],
-            answer: 0,
-          },
-          {
-            id: "2",
-            question: "What is the second question?",
-            options: ["The first option", "The second option", "The third option", "The fourth option"],
-            answer: 1,
-          },
-          {
-            id: "3",
-            question: "What is the third question?",
-            options: ["The first option", "The second option", "The third option", "The fourth option"],
-            answer: 2,
-          },
-          {
-            id: "4",
-            question: "What is the fourth question?",
-            options: ["The first option", "The second option", "The third option", "The fourth option"],
-            answer: 3,
-          },
-        ]
-      }
-    }
+    request_type: "add_question",
+    designation: "organizer",
+    roomId: "test_room",
+    question: "What is the first question?",
+    options: [
+      "The first option",
+      "The second option",
+      "The third option",
+      "The fourth option",
+    ],
   });
-  await pause(2000);
+  await pause(100);
 
-  /* Test Attendee Logic */
-  // answer_question
   send({
-    request_type: "answer_question",
-    data: {
-      AnswerQuestion: {
-        user: "test_attendee",
-        room_id: "test_room",
-        question_id: "1",
-        answer: 0,
-      }
-    }
+    request_type: "submit_answer",
+    designation: "organizer",
+    roomId: "test_room",
+    answer: 0,
   });
-  await pause(2000);
+  await pause(100);
 
-  log('test', 'Test completed');
+  log("test", "Test completed");
+
+  return;
 }
