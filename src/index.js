@@ -64,6 +64,10 @@ wss.on("connection", function connection(ws) {
             name: request.username,
             id: request.userId,
           });
+
+          ws.data = {
+            roomId: request.roomId,
+          };
           ws.send(formatJson({ success: true, message: "User registered" }));
         } else {
           ws.send(
@@ -94,6 +98,19 @@ wss.on("connection", function connection(ws) {
 
           state.rooms[request.roomId].question = request.question;
           state.rooms[request.roomId].options = request.options;
+
+          wss.clients.forEach((client) => {
+            if (client.data.roomId === request.roomId) {
+              client.send(
+                formatJson({
+                  action: "add_question",
+                  message: "Question added",
+                  question: request.question,
+                  options: request.options,
+                })
+              );
+            }
+          });
           ws.send(formatJson({ success: true, message: "Question added" }));
 
           // TODO: send the question to attendees
@@ -124,7 +141,17 @@ wss.on("connection", function connection(ws) {
               formatJson({ error: true, message: "No question added" })
             );
 
-          // TODO: post the solution to attendees
+          wss.clients.forEach((client) => {
+            if (client.data.roomId === request.roomId) {
+              client.send(
+                formatJson({
+                  action: "submit_answer",
+                  message: "Answer submitted",
+                  answer: request.answer,
+                })
+              );
+            }
+          });
           ws.send(formatJson({ success: true, message: "Answer submitted" }));
         } else {
           ws.send(
