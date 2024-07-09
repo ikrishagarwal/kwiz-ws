@@ -10,7 +10,7 @@ async fn shuttle_main(
     // TODO: add necessary commands here
     // npm install
     Command::new("yarn")
-        .arg("--frozen-lockfile")
+        .arg("install")
         .spawn()
         .expect("Failed to install npm dependencies")
         .wait();

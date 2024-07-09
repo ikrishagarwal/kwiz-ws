@@ -1,6 +1,11 @@
 const { WebSocketServer } = require("ws");
+const { createServer } = require("http");
 const { formatJson } = require("./helpers");
 
+const server = createServer((req, res) => {
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("Websocket server running");
+});
 // Shared state
 const state = {
   traffic: 0,
@@ -8,7 +13,7 @@ const state = {
   users: [],
 };
 
-const wss = new WebSocketServer({ port: 8080 });
+const wss = new WebSocketServer({ server });
 
 wss.on("connection", function connection(ws) {
   state.traffic += 1;
@@ -173,6 +178,10 @@ wss.on("connection", function connection(ws) {
     console.log("Connection closed, total traffic:", state.traffic);
     // Remove user/room from state.users or state.rooms if necessary
   });
+});
+
+server.listen(8080, () => {
+  console.log("Server started on http://localhost:8080");
 });
 
 /**
