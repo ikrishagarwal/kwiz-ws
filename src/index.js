@@ -15,7 +15,13 @@ const state = {
 
 const wss = new WebSocketServer({ server });
 
-wss.on("connection", function connection(ws) {
+wss.on("connection", function connection(ws, req) {
+  // TODO: remove the IP logging part in production
+  console.log(
+    "Requester IP:",
+    req.headers["x-forwarded-for"] || req.socket.remoteAddress
+  );
+
   state.traffic += 1;
   console.log("New connection, total traffic:", state.traffic);
 
