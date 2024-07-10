@@ -186,8 +186,8 @@ wss.on("connection", function connection(ws, req) {
   });
 });
 
-server.listen(3000, () => {
-  console.log("Server started on http://localhost:8080");
+server.listen(8000, () => {
+  console.log("Server started on http://localhost:8000");
 });
 
 /**
