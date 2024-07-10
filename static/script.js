@@ -7,8 +7,10 @@ async function pause(ms) {
 }
 
 const proto = location.protocol.startsWith("https") ? "wss" : "ws";
-const websocket = new WebSocket(`${proto}://127.0.0.1:8080/`);
-// const websocket = new WebSocket("https://kwiz-ws.shuttleapp.rs:8080");
+const websocket = new WebSocket(`${proto}://127.0.0.1:3000/`);
+// const websocket = new WebSocket(
+//   "wss://super-journey-rw6j5qjxx7pcx45x-8080.app.github.dev"
+// );
 
 websocket.onopen = async () => {
   log("ws", "connection established");
