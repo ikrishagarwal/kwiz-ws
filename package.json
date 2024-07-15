@@ -4,13 +4,7 @@
   "description": "Websocket server for kwiz",
   "main": "src/index.js",
   "scripts": {
-    "start": "node ./src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "shuttle:login": "cargo shuttle login",
-    "shuttle:deploy": "cargo shuttle deploy --allow-dirty",
-    "shuttle:start": "cargo shuttle project start --idle-minutes 0",
-    "shuttle:stop": "cargo shuttle project stop",
-    "shuttle:restart": "cargo shuttle project restart --idle-minutes 0"
+    "start": "node ./src/index.js"
   },
   "repository": "https://github.com/ikrishagarwal/kwiz-ws",
   "author": "Krish <68506145+ikrishagarwal@users.noreply.github.com>",
