@@ -1,5 +1,1 @@
-/target
-.shuttle-storage
-Secrets*.toml
-
 node_modules

@@ -1,10 +1,34 @@
 const { WebSocketServer } = require("ws");
 const { createServer } = require("http");
 const { formatJson } = require("./helpers");
+const { readFileSync } = require("fs");
 
-const server = createServer((req, res) => {
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("Websocket server running");
+const PORT = process.env.PORT || 8080;
+const DEV = process.argv.at(2) === "dev";
+
+console.log("Dev mode:", DEV);
+
+const server = createServer(async (req, res) => {
+  // For dev purposes
+  const html = readFileSync("./static/index.html", "utf8");
+  const js = readFileSync("./static/script.js", "utf8");
+
+  if (DEV) {
+    switch (req.url) {
+      case "/script.js":
+        res.writeHead(200, { "Content-Type": "application/javascript" });
+        res.end(js);
+        break;
+
+      case "/":
+        res.writeHead(200, { "Content-Type": "text/html" });
+        res.end(html);
+        break;
+    }
+  } else {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("Websocket server running");
+  }
 });
 // Shared state
 const state = {
@@ -186,8 +210,8 @@ wss.on("connection", function connection(ws, req) {
   });
 });
 
-server.listen(8000, () => {
-  console.log("Server started on http://localhost:8000");
+server.listen(PORT, () => {
+  console.log("Server started on http://localhost:" + PORT);
 });
 
 /**
