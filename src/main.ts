@@ -144,7 +144,8 @@ wss.on("connection", (ws: WSExtended) => {
         state.rooms[request.roomId].options = request.options;
 
         wss.clients.forEach((client) => {
-          if ((client as WSExtended).data.roomId === request.roomId) {
+          const extendedClient = client as WSExtended;
+          if (extendedClient.data && extendedClient.data.roomId === request.roomId) {
             client.send(
               formatJson({
                 action: "add_question",
@@ -183,7 +184,8 @@ wss.on("connection", (ws: WSExtended) => {
           );
 
         wss.clients.forEach((client) => {
-          if ((client as WSExtended).data.roomId === request.roomId) {
+          const extendedClient = client as WSExtended;
+          if (extendedClient.data && extendedClient.data.roomId === request.roomId) {
             client.send(
               formatJson({
                 action: "submit_answer",
