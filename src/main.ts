@@ -198,6 +198,10 @@ wss.on("connection", (ws: WSExtended) => {
         ws.send(formatJson({ success: true, message: "Answer submitted" }));
         break;
 
+      case RequestType.LOG:
+        // just skip it as it's already logging
+        break;
+
       default:
         ws.send(formatJson({ error: true, message: "Invalid request type" }));
     }
@@ -227,4 +231,5 @@ enum RequestType {
   REGISTER_USER = "register_user",
   ADD_QUESTION = "add_question",
   SUBMIT_ANSWER = "submit_answer",
+  LOG = "log",
 }
