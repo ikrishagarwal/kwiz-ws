@@ -1,5 +1,17 @@
+import type { StatsType } from "#root/main";
+
 export const checkOrganizer = (role: string) => role === "organizer";
 export const checkAttendee = (role: string) => role === "attendee";
 
 export const roomExists = (rooms: string[], roomId: string) =>
   rooms.includes(roomId);
+
+export const checkUniqueUserId = (state: StatsType, userId: string) => {
+  for (const roomId in state.rooms) {
+    const attendees = state.rooms[roomId].attendees;
+    for (const attendee of attendees) {
+      if (attendee.id === userId) return false;
+    }
+  }
+  return true;
+};

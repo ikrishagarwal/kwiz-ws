@@ -2,7 +2,12 @@ import { readFileSync } from "fs";
 import { createServer } from "http";
 import WebSocket, { WebSocketServer } from "ws";
 import { formatJson } from "#root/helpers";
-import { checkAttendee, checkOrganizer, roomExists } from "./utils.js";
+import {
+  checkAttendee,
+  checkOrganizer,
+  checkUniqueUserId,
+  roomExists,
+} from "#root/utils";
 
 const PORT = process.env.PORT || 8080;
 const DEV = process.argv.at(2) === "dev";
@@ -74,9 +79,21 @@ wss.on("connection", (ws: WSExtended) => {
             formatJson({ error: true, message: "Invalid room id" })
           );
 
+        if (!request.userId)
+          return ws.send(
+            formatJson({ error: true, message: "Invalid user id" })
+          );
+
+        if (roomExists(Object.keys(state.rooms), request.roomId))
+          return ws.send(
+            formatJson({ error: true, message: "Room already exists" })
+          );
+
         state.rooms[request.roomId] = {
+          organizer: request.userId,
+          attendees: [],
+          score: [],
           question: "",
-          options: [],
         };
 
         ws.send(formatJson({ success: true, message: "Room hosted" }));
@@ -101,10 +118,15 @@ wss.on("connection", (ws: WSExtended) => {
             formatJson({ error: true, message: "Invalid user id" })
           );
 
-        //   state.rooms[request.roomId].attendees.push({
-        //     name: request.username,
-        //     id: request.userId,
-        //   });
+        if (!checkUniqueUserId(state, request.userId))
+          return ws.send(
+            formatJson({ error: true, message: "User already registered" })
+          );
+
+        state.rooms[request.roomId].attendees.push({
+          name: request.username,
+          id: request.userId,
+        });
 
         ws.data = {
           roomId: request.roomId,
@@ -141,11 +163,13 @@ wss.on("connection", (ws: WSExtended) => {
           );
 
         state.rooms[request.roomId].question = request.question;
-        state.rooms[request.roomId].options = request.options;
 
         wss.clients.forEach((client) => {
           const extendedClient = client as WSExtended;
-          if (extendedClient.data && extendedClient.data.roomId === request.roomId) {
+          if (
+            extendedClient.data &&
+            extendedClient.data.roomId === request.roomId
+          ) {
             client.send(
               formatJson({
                 action: "add_question",
@@ -185,7 +209,10 @@ wss.on("connection", (ws: WSExtended) => {
 
         wss.clients.forEach((client) => {
           const extendedClient = client as WSExtended;
-          if (extendedClient.data && extendedClient.data.roomId === request.roomId) {
+          if (
+            extendedClient.data &&
+            extendedClient.data.roomId === request.roomId
+          ) {
             client.send(
               formatJson({
                 action: "submit_answer",
@@ -218,9 +245,17 @@ server.listen(PORT, () => {
   console.log("Server started on http://localhost:" + PORT);
 });
 
-type StatsType = {
+export type StatsType = {
   traffic: number;
-  rooms: Record<string, { question: string; options: string[] }>;
+  rooms: Record<
+    string,
+    {
+      organizer: string;
+      attendees: Array<{ id: string; name: string }>;
+      score: Array<{ id: string; score: number; name: string }>;
+      question: string;
+    }
+  >;
   users: string[];
 };
 
