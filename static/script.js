@@ -78,6 +78,15 @@ async function testServer() {
   await pause(100);
 
   send({
+    request_type: "answer",
+    designation: "attendee",
+    roomId: "test_room",
+    userId: "blasstr",
+    answer: 2,
+  });
+  await pause(100);
+
+  send({
     request_type: "submit_answer",
     designation: "organizer",
     roomId: "test_room",
