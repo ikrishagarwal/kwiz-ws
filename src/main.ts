@@ -92,8 +92,9 @@ wss.on("connection", (ws: WSExtended) => {
         state.rooms[request.roomId] = {
           organizer: request.userId,
           attendees: [],
-          score: [],
+          scores: [],
           question: "",
+          answers: [],
         };
 
         ws.send(formatJson({ success: true, message: "Room hosted" }));
@@ -124,13 +125,22 @@ wss.on("connection", (ws: WSExtended) => {
           );
 
         state.rooms[request.roomId].attendees.push({
-          name: request.username,
+          username: request.username,
           id: request.userId,
+        });
+
+        state.rooms[request.roomId].scores.push({
+          id: request.userId,
+          score: 0,
+          username: request.username,
         });
 
         ws.data = {
           roomId: request.roomId,
+          userId: request.userId,
+          username: request.username,
         };
+
         ws.send(formatJson({ success: true, message: "User registered" }));
         break;
 
@@ -180,6 +190,9 @@ wss.on("connection", (ws: WSExtended) => {
             );
           }
         });
+
+        state.rooms[request.roomId].answers = [];
+
         ws.send(formatJson({ success: true, message: "Question added" }));
         break;
 
@@ -207,21 +220,90 @@ wss.on("connection", (ws: WSExtended) => {
             formatJson({ error: true, message: "No question added" })
           );
 
+        const newScores = [] as Array<{
+          id: string;
+          score: number;
+          username: string;
+        }>;
+
         wss.clients.forEach((client) => {
           const extendedClient = client as WSExtended;
           if (
             extendedClient.data &&
             extendedClient.data.roomId === request.roomId
           ) {
+            const answerData = state.rooms[request.roomId].answers.find(
+              (answer) => answer.userId === extendedClient.data.userId
+            );
+
+            if (!answerData)
+              return client.send(
+                formatJson({ error: true, message: "No answer submitted" })
+              );
+
+            let currentUser = state.rooms[request.roomId].scores.find(
+              (score) => score.id === answerData.userId
+            );
+
+            if (!currentUser)
+              currentUser = {
+                id: answerData.userId,
+                score: 0,
+                username: extendedClient.data.username,
+              };
+
+            currentUser.score += answerData.answer === request.answer ? 1 : 0;
+            newScores.push(currentUser);
+
             client.send(
               formatJson({
                 action: "submit_answer",
                 message: "Answer submitted",
-                answer: request.answer,
+                score: currentUser.score,
               })
             );
           }
         });
+
+        state.rooms[request.roomId].scores = newScores;
+
+        ws.send(formatJson({ success: true, message: "Answer submitted" }));
+        break;
+
+      case RequestType.ANSWER:
+        if (!checkAttendee(request.designation))
+          return ws.send(
+            formatJson({
+              error: true,
+              message: "Designation does not support submitting answers",
+            })
+          );
+
+        if (!roomExists(Object.keys(state.rooms), request.roomId))
+          return ws.send(
+            formatJson({ error: true, message: "Room does not exist" })
+          );
+
+        if (isNaN(request.answer))
+          return ws.send(
+            formatJson({ error: true, message: "Invalid answer index" })
+          );
+
+        if (!state.rooms[request.roomId].question)
+          return ws.send(
+            formatJson({ error: true, message: "No question added" })
+          );
+
+        if (!request.userId)
+          return ws.send(
+            formatJson({ error: true, message: "Invalid user id" })
+          );
+
+        state.rooms[request.roomId].answers.push({
+          userId: request.userId,
+          answer: request.answer,
+        });
+
         ws.send(formatJson({ success: true, message: "Answer submitted" }));
         break;
 
@@ -251,20 +333,24 @@ export type StatsType = {
     string,
     {
       organizer: string;
-      attendees: Array<{ id: string; name: string }>;
-      score: Array<{ id: string; score: number; name: string }>;
+      attendees: Array<{ id: string; username: string }>;
+      scores: Array<{ id: string; score: number; username: string }>;
       question: string;
+      answers: Array<{ userId: string; answer: number }>;
     }
   >;
   users: string[];
 };
 
-type WSExtended = WebSocket & { data: { roomId: string } };
+type WSExtended = WebSocket & {
+  data: { roomId: string; userId: string; username: string };
+};
 
 enum RequestType {
   HOST_ROOM = "host_room",
   REGISTER_USER = "register_user",
   ADD_QUESTION = "add_question",
   SUBMIT_ANSWER = "submit_answer",
+  ANSWER = "answer",
   LOG = "log",
 }
