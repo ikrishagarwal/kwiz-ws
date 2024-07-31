@@ -210,7 +210,7 @@ wss.on("connection", (ws: WSExtended) => {
             formatJson({ error: true, message: "Room does not exist" })
           );
 
-        if (isNaN(request.answer))
+        if (isNaN(Number(request.answer)))
           return ws.send(
             formatJson({ error: true, message: "Invalid answer index" })
           );
@@ -232,27 +232,22 @@ wss.on("connection", (ws: WSExtended) => {
             extendedClient.data &&
             extendedClient.data.roomId === request.roomId
           ) {
-            const answerData = state.rooms[request.roomId].answers.find(
+            const selectedAnswer = state.rooms[request.roomId].answers.find(
               (answer) => answer.userId === extendedClient.data.userId
-            );
-
-            if (!answerData)
-              return client.send(
-                formatJson({ error: true, message: "No answer submitted" })
-              );
+            )?.answer || null;
 
             let currentUser = state.rooms[request.roomId].scores.find(
-              (score) => score.id === answerData.userId
+              (score) => score.id === extendedClient.data.userId
             );
 
             if (!currentUser)
               currentUser = {
-                id: answerData.userId,
+                id: extendedClient.data.userId,
                 score: 0,
                 username: extendedClient.data.username,
               };
 
-            currentUser.score += answerData.answer === request.answer ? 1 : 0;
+            currentUser.score += selectedAnswer !== null && selectedAnswer === request.answer ? 1 : 0;
             newScores.push(currentUser);
 
             client.send(
