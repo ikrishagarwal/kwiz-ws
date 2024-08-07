@@ -15,7 +15,7 @@
   },
   "repository": "https://github.com/ikrishagarwal/kwiz-ws",
   "author": "Krish <68506145+ikrishagarwal@users.noreply.github.com>",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "private": true,
   "dependencies": {
     "ws": "^8.18.0"
