@@ -54,7 +54,7 @@ export type WSExtended = WebSocket & {
   data: { roomId: string; userId: string; username: string };
 };
 
-export type StatsType = {
+export type StateType = {
   traffic: number;
   rooms: Record<
     string,
@@ -66,5 +66,4 @@ export type StatsType = {
       answers: Array<{ userId: string; answer: number }>;
     }
   >;
-  users: string[];
 };

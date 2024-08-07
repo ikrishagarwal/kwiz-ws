@@ -5,7 +5,7 @@ import { formatJson } from "#root/helpers";
 import {
   checkAttendee,
   checkOrganizer,
-  checkUniqueUserId,
+  isUniqueUserId,
   roomExists,
 } from "#root/utils";
 
@@ -16,7 +16,7 @@ import {
   Actions,
   RequestType,
   type WSExtended,
-  type StatsType,
+  type StateType,
 } from "#root/structures";
 
 const PORT = process.env.PORT || 8080;
@@ -51,10 +51,9 @@ const server = createServer(async (req, res) => {
   }
 });
 
-const state: StatsType = {
+const state: StateType = {
   traffic: 0,
   rooms: {},
-  users: [],
 };
 
 const wss = new WebSocketServer({ server });
@@ -121,7 +120,7 @@ wss.on("connection", (ws: WSExtended) => {
             })
           );
 
-        if (!roomExists(Object.keys(state.rooms), request.roomId))
+        if (roomExists(Object.keys(state.rooms), request.roomId))
           return ws.send(
             formatJson({ error: true, message: ErrorMessages.DuplicateRoom })
           );
@@ -131,7 +130,7 @@ wss.on("connection", (ws: WSExtended) => {
             formatJson({ error: true, message: ErrorMessages.InvalidUserId })
           );
 
-        if (!checkUniqueUserId(state, request.userId))
+        if (!isUniqueUserId(state, request.userId))
           return ws.send(
             formatJson({ error: true, message: ErrorMessages.DuplicateUser })
           );
