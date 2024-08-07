@@ -1,4 +1,4 @@
-import type { StatsType } from "#root/main";
+import type { StatsType } from "#root/structures";
 
 export const checkOrganizer = (role: string) => role === "organizer";
 export const checkAttendee = (role: string) => role === "attendee";

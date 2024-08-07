@@ -15,8 +15,8 @@ import {
   ActionMessages,
   Actions,
   RequestType,
-  WSExtended,
-  StatsType,
+  type WSExtended,
+  type StatsType,
 } from "#root/structures";
 
 const PORT = process.env.PORT || 8080;
@@ -174,7 +174,7 @@ wss.on("connection", (ws: WSExtended) => {
 
         if (!request.question.trim())
           return ws.send(
-            formatJson({ error: true, message: "Empty question" })
+            formatJson({ error: true, message: ErrorMessages.EmptyQuestion })
           );
 
         if (
@@ -183,7 +183,7 @@ wss.on("connection", (ws: WSExtended) => {
           !request.options.every((option: string) => option.trim())
         )
           return ws.send(
-            formatJson({ error: true, message: "Invalid options" })
+            formatJson({ error: true, message: ErrorMessages.InvalidOptions })
           );
 
         state.rooms[request.roomId].question = request.question;
@@ -196,8 +196,8 @@ wss.on("connection", (ws: WSExtended) => {
           ) {
             client.send(
               formatJson({
-                action: "add_question",
-                message: "Question added",
+                action: Actions.AddQuestion,
+                message: ActionMessages.AddQuestion,
                 question: request.question,
                 options: request.options,
               })
@@ -207,7 +207,9 @@ wss.on("connection", (ws: WSExtended) => {
 
         state.rooms[request.roomId].answers = [];
 
-        ws.send(formatJson({ success: true, message: "Question added" }));
+        ws.send(
+          formatJson({ success: true, message: ActionMessages.AddQuestion })
+        );
         break;
 
       case RequestType.SUBMIT_ANSWER:
@@ -215,23 +217,23 @@ wss.on("connection", (ws: WSExtended) => {
           return ws.send(
             formatJson({
               error: true,
-              message: "Designation does not support submitting answers",
+              message: ErrorMessages.WrongDesignationSubmission,
             })
           );
 
         if (!roomExists(Object.keys(state.rooms), request.roomId))
           return ws.send(
-            formatJson({ error: true, message: "Room does not exist" })
+            formatJson({ error: true, message: ErrorMessages.InvalidRoom })
           );
 
         if (isNaN(Number(request.answer)))
           return ws.send(
-            formatJson({ error: true, message: "Invalid answer index" })
+            formatJson({ error: true, message: ErrorMessages.InvalidAnswer })
           );
 
         if (!state.rooms[request.roomId].question)
           return ws.send(
-            formatJson({ error: true, message: "No question added" })
+            formatJson({ error: true, message: ErrorMessages.NoQuestion })
           );
 
         const newScores = [] as Array<{
@@ -270,8 +272,8 @@ wss.on("connection", (ws: WSExtended) => {
 
             client.send(
               formatJson({
-                action: "submit_answer",
-                message: "Answer submitted",
+                action: Actions.SubmitAnswer,
+                message: ActionMessages.SubmitAnswer,
                 score: currentUser.score,
               })
             );
@@ -280,7 +282,12 @@ wss.on("connection", (ws: WSExtended) => {
 
         state.rooms[request.roomId].scores = newScores;
 
-        ws.send(formatJson({ success: true, message: "Answer submitted" }));
+        ws.send(
+          formatJson({
+            success: true,
+            message: SuccessMessages.AnswerSubmitted,
+          })
+        );
         break;
 
       case RequestType.ANSWER:
@@ -288,28 +295,28 @@ wss.on("connection", (ws: WSExtended) => {
           return ws.send(
             formatJson({
               error: true,
-              message: "Designation does not support submitting answers",
+              message: ErrorMessages.WrongDesignationAnswer,
             })
           );
 
         if (!roomExists(Object.keys(state.rooms), request.roomId))
           return ws.send(
-            formatJson({ error: true, message: "Room does not exist" })
+            formatJson({ error: true, message: ErrorMessages.InvalidRoom })
           );
 
         if (isNaN(request.answer))
           return ws.send(
-            formatJson({ error: true, message: "Invalid answer index" })
+            formatJson({ error: true, message: ErrorMessages.InvalidAnswer })
           );
 
         if (!state.rooms[request.roomId].question)
           return ws.send(
-            formatJson({ error: true, message: "No question added" })
+            formatJson({ error: true, message: ErrorMessages.NoQuestion })
           );
 
         if (!request.userId)
           return ws.send(
-            formatJson({ error: true, message: "Invalid user id" })
+            formatJson({ error: true, message: ErrorMessages.InvalidUserId })
           );
 
         state.rooms[request.roomId].answers.push({
@@ -317,7 +324,12 @@ wss.on("connection", (ws: WSExtended) => {
           answer: request.answer,
         });
 
-        ws.send(formatJson({ success: true, message: "Answer submitted" }));
+        ws.send(
+          formatJson({
+            success: true,
+            message: SuccessMessages.AnswerSubmitted,
+          })
+        );
         break;
 
       case RequestType.LOG:
@@ -325,7 +337,9 @@ wss.on("connection", (ws: WSExtended) => {
         break;
 
       default:
-        ws.send(formatJson({ error: true, message: "Invalid request type" }));
+        ws.send(
+          formatJson({ error: true, message: ErrorMessages.InvalidRequest })
+        );
     }
   });
 
