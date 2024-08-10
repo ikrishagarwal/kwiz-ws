@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "tsc -b src",
+    "test": "vitest run",
     "dev": "yarn build && yarn start",
     "watch": "tsc -b src -w",
     "start": "node --enable-source-maps dist/main.js"
@@ -23,6 +24,8 @@
   "devDependencies": {
     "@types/node": "^20.14.10",
     "@types/ws": "^8.5.11",
-    "typescript": "^5.5.3"
+    "@vitest/coverage-v8": "^2.0.5",
+    "typescript": "^5.5.3",
+    "vitest": "^2.0.5"
   }
 }
